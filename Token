@@ -1,0 +1,116 @@
+#!/usr/bin/python
+import sys
+import re
+# used to keep track of tokens found
+tups = []
+# REs for the various tokens and partial tokens
+res = ["\s",r"\\\n","<<",  "<", ">>", ">&", ">", r"\|&", r"\|\|", r"\|", "&&", "&", ";", r"\(", r"\)", "#[^\n]*\s*", r"\'",r"\"","[^<>;&|()\s]"]    
+# map metacharacters to their number
+charMap = {"<<": 22, "<": 21, ">>": 32, ">&": 33, ">": 31, r"\|&": 42, r"\|\|": 62, r"\|": 41, "&&": 61, "&": 52, ";": 51, r"\(": 71, r"\)": 72}
+
+# used to get more input when we have an unclosed quote or a line splice
+def getNewLine():
+    global vFlag
+    sys.stdout.write("> ")
+    # line = sys.stdin.readline()
+    try:
+        line = raw_input() + "\n"
+    except EOFError:
+        sys.stderr.write("Unterminated string\n")
+        sys.exit(1)
+    if vFlag:
+        sys.stdout.write(line)
+    return line
+
+# make sure command line args are right
+if len(sys.argv) != 1 and (sys.argv[1] != "-v" or len(sys.argv) != 2):
+    sys.stderr.write("Too many args or bad arg\n")
+    sys.exit(1)
+
+simpleToken = ""
+vFlag = False
+# keep prompting for input until we have a keyboard interrupt or an EOF
+while(True):
+    try:   
+        sys.stdout.write("% ")
+        # line = sys.stdin.readline()
+        line = raw_input() + "\n"
+        if len(sys.argv) == 2:
+            sys.stdout.write(line)
+            vFlag = True 
+        # keep looping through the REs trying to match the front of the input which will be modified each time                       
+        while line != "":
+            for r in res:
+                match = re.match(r, line)
+                if match:
+                    # handle single quotes
+                    if r == r"\'":
+                        match = re.match(r"\'[^']*\'",line)
+                        if match:
+                            simpleToken += match.group()                            
+                            line = line[match.end():]
+                        else:
+                            line += getNewLine()                         
+                        break                          
+                    # #handle line splice    
+                    if r == r"\\\n":
+                        line = getNewLine()
+                        break
+                    # handle double quotes
+                    if r == r"\"":
+                        # handle empty quotes and quotes filled with even number of backslash
+                        if re.match(r"\"(\\\\)*\"",line):
+                            match = re.match(r"\"(\\\\)*\"",line)
+                        else:
+                            match = re.match(r"\".*?([^\\]\"|[^\\](\\\\)+\")",line, flags=re.DOTALL) 
+                        if match:
+                            simpleToken += match.group()                            
+                            line = line[match.end():]
+                        else:
+                            # line splice at end of double quote
+                            if re.search(r"\\\\\n$",line) == None and re.search(r"\\\n$",line):
+                                line = line[:-2]
+                                line += getNewLine()            
+                            else:
+                                line += getNewLine()                         
+                        break                        
+                    # builds up a single character one char at a time, handles escaped chars    
+                    if r == "[^<>;&|()\s]":
+                        simpleToken += match.group()                            
+                        line = line[match.end():]
+                        if match.group() == "\\":
+                            if line[0] in ['<', '>', ';', '&', '|', '(', ')','\'','\"','\t',' ', '\n','\r','\f','\v','#',"\\"]:
+                                simpleToken += line[0]                            
+                                line = line[1:]
+                        break
+                    # need to handle #s that are inside a string, adding this late, could be cleaner
+                    comment = re.match("#", line)
+                    if comment and simpleToken != "":
+                        simpleToken += comment.group()
+                        line = line[1:]
+                        break   
+
+                    # if a simple token has been built up add it to the list  
+                    if simpleToken != "":
+                        tups.append((simpleToken, 11))
+                        simpleToken = ""
+
+                    # if it is whitespace or a comment don't add it to the list                                
+                    if r != "\s" and r != "#[^\n]*\s*":                                                         
+                        tups.append((match.group(), charMap[r]))
+                    line = line[match.end():]
+                    break
+        #print all the tokens that were found
+        for x in tups:
+            sys.stdout.write(str(x[0]) + " : " + str(x[1]) + "\n")
+        del tups[:]
+    except KeyboardInterrupt:
+        break
+    except EOFError:
+        break
+
+
+
+
+
+
