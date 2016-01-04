@@ -15,12 +15,22 @@ standard output one per line, followed by their type.  Here a token is
 
 The types are given in the following table:
 
-  Token   Type      Token   Type      Token   Type      Token   Type
-  ~~~~~   ~~~~      ~~~~~   ~~~~      ~~~~~   ~~~~      ~~~~~   ~~~~
-  SIMPLE   11       >>       32       ;        51        (       71
-  <        21       >&       33       &        52        )       72
-  <<       22       |        41       &&       61
-  >        31       |&       42       ||       62
+  Token   Type
+  ~~~~~   ~~~~   
+  SIMPLE   11       
+  >>       32       
+  ;        51        
+  (       71
+  <        21       
+  >&       33       
+  &        52        
+  )       72
+  <<       22       
+  |        41       
+  &&       61
+  >        31       
+  |&       42       
+  ||       62
 
 Whitespace can be used to separate tokens from one another, but is ignored
 otherwise (Warning: whitespace can be escaped; see below).
